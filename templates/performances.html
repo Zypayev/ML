@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <link rel="stylesheet" href="../static/styles.css">
+    <title>Excel Data</title>
+    <style>
+        /* Custom styling for select dropdowns */
+        select {
+            margin: 15px;
+            padding: 8px 12px; /* Adjust padding for better appearance */
+            font-size: 16px; /* Increase font size */
+            border: 1px solid #ced4da; /* Add border */
+            border-radius: 4px; /* Add border radius */
+            background-color: #fff; /* Set background color */
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; /* Add transition effect */
+        }
+    
+        select:focus {
+            border-color: #80bdff; /* Change border color on focus */
+            outline: 0; /* Remove outline */
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* Add box shadow on focus */
+        }
+
+        .center-align {
+        text-align: center;
+        }
+    </style>
+    
+</head>
+<body>
+    <div id="layoutSidenav">
+        <div id="layoutSidenav_nav">
+            <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
+                <div class="sb-sidenav-menu">
+                    <div class="nav">
+                        <div class="sb-sidenav-menu-heading">Core</div>
+                        <a class="nav-link" href="/">
+                            <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
+                            Dashboard
+                        </a>
+                        <a class="nav-link" href="{{ url_for('tables') }}">
+                            <div class="sb-nav-link-icon"><i class="fas fa-table"></i></div>
+                            Tables
+                        </a>
+                        <a class="nav-link" href="{{ url_for('help') }}">
+                            <div class="sb-nav-link-icon"><i class="fas fa-table"></i></div>
+                            Help
+                        </a>
+                        <a class="nav-link" href="{{ url_for('about') }}"> <!-- Link to About Us Page -->
+                            <div class="sb-nav-link-icon"><i class="fas fa-table"></i></div>
+                            About Us
+                        </a>
+                    </div>
+                </div>
+                <div class="sb-sidenav-footer">
+                    <div class="small">Logged in as:</div>
+                    KIMEP
+                </div>
+            </nav>
+        </div>
+        <div id="layoutSidenav_content">
+                
+            <h1 class="chart-title" style="text-align: left;">Performance Analysis</h1>
+            <div class="chart-container">
+                <h4 class="center-align">Expected Performance</h2>
+                <canvas id="myChart" style="margin: 0px;"></canvas>
+                <select id="sortSelect">
+                    <option value="index">Sort by Index</option>
+                    <option value="increasing">Sort in Increasing Order</option>
+                    <option value="decreasing">Sort in Decreasing Order</option>
+                </select>
+                <h4 class="center-align">Targeted Performance</h2>
+                <canvas id="anotherChart" style="margin: 0px;"></canvas>
+                <select id="sortSelectAnother">
+                    <option value="index">Sort by Index</option>
+                    <option value="increasing">Sort in Increasing Order</option>
+                    <option value="decreasing">Sort in Decreasing Order</option>
+                </select>
+            </div>
+            <h1>Excel Data</h1>
+            <!-- Display the Excel data in a table -->
+            {{ excel_data | safe }}
+
+            <script>
+                document.querySelectorAll("td").forEach(cell => {
+                    cell.contentEditable = true;
+                });
+                // Get the performances data from Flask template
+                var performances = {{ performances | tojson | safe }};
+                var targeted_performances = {{ targeted_performances | tojson | safe }};
+                var ctx = document.getElementById('myChart').getContext('2d');
+                var myChart = null;
+                var chrt = document.getElementById('anotherChart').getContext('2d');
+                var anotherChart = null;
+
+                // Create a new Chart.js instance
+                function firstGraph() {
+                    if(myChart) {
+                        myChart.destroy();
+                    }
+                    sortedPerformances = getPerformances('sortSelect', performances);
+                    myChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: sortedPerformances.map((value, index) => index + 1),
+                            datasets: [{
+                                label: 'Performance',
+                                data: sortedPerformances,
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            }, {
+                                type: 'line',
+                                label: 'Average Performance',
+                                data: Array(performances.length).fill({{ avg_performance }}),
+                                borderColor: 'rgba(255, 99, 132, 0.5)', // Adjusted transparency for dashed line
+                                borderWidth: 1,
+                                fill: false,
+                                borderDash: [5, 5],
+                                pointRadius: 0 // Hide data points
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Team'
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Expected Performance'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            
+            
+                function getPerformances(id, passed_performances) {
+                    var sortMethod = document.getElementById(id).value;
+                    var sortedPerformances;
+
+                    if (sortMethod === 'index') {
+                        // Sort by index (no sorting needed)
+                        sortedPerformances = passed_performances.slice();
+                    } else if (sortMethod === 'increasing') {
+                        // Sort in increasing order
+                        sortedPerformances = passed_performances.slice().sort(function(a, b) {
+                            return a - b;
+                        });
+                    } else if (sortMethod === 'decreasing') {
+                        // Sort in decreasing order
+                        sortedPerformances = passed_performances.slice().sort(function(a, b) {
+                            return b - a;
+                        });
+                    }
+
+                    // Update the chart data
+                    return sortedPerformances;
+                }
+
+                function secondGraph() {
+                    if(anotherChart) {
+                        anotherChart.destroy();
+                    }
+                    sorted_performances = getPerformances('sortSelectAnother', targeted_performances)
+                    anotherChart = new Chart(chrt, {
+                        type: 'line',
+                        data: {
+                            labels: sorted_performances.map((value, index) => index + 1),
+                            datasets: [{
+                                label: 'Performance',
+                                data: sorted_performances,
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Team'
+                                    }
+                                },
+                                y: {
+                                    min: 0,
+                                    max: 1,
+                                    title: {
+                                        display: true,
+                                        text: 'Targeted Performance'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                firstGraph();
+                secondGraph();
+                // Add event listener to select element
+                document.getElementById('sortSelect').addEventListener('change', firstGraph);
+                document.getElementById('sortSelectAnother').addEventListener('change', secondGraph);
+
+
+            </script>
+            <div class="insights">
+                <div class="performance-insights">
+                    <div class="column">
+                        <h3>Expected Performance Insights</h2>
+                        <p class="average">Average Performance: {{ avg_performance }}</p>
+                        <p class="median">Median Performance: {{ median_performance }}</p>
+                        <p class="std-deviation">Standard Deviation: {{ std_deviation }}</p>
+                    </div>
+                    <div class="column">
+                        <h3>Best Expected Performing Teams</h3>
+                        <ul>
+                            {% for team_index in best_teams %}
+                                <li class="green">Team {{ team_index + 1 }} - Performance: {{ performances[team_index] }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <h3>Worst Expected Performing Teams</h3>
+                        <ul>
+                            {% for team_index in worst_teams %}
+                                <li class="red">Team {{ team_index + 1 }} - Performance: {{ performances[team_index] }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="back-link"><a href="/">Back to Main</a></div>
+
+        </div>
+    </div>
+</body>
+</html>
