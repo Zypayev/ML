@@ -37,4 +37,4 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ## Contact
 
-For inquiries or support, please contact the development team at [ramazan021115@gmailcom].
+For inquiries or support, please contact the development team at [ramazan021115@gmail.com]
